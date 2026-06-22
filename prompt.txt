@@ -1,0 +1,707 @@
+==================================================
+ABSOLUTE FIRST STEP: DOCUMENT VALIDITY CHECK
+=============================================
+
+Before ANY extraction, ask yourself:
+
+"Is this image ACTUALLY a business card, or is it something else?"
+
+A real business card is a SMALL PRINTED CARD deliberately designed to share contact information.
+
+It is NOT:
+
+- A landscape or nature photo
+- A product or scenery photo
+- A social media post or screenshot
+- A poster, banner, or flyer
+- A food photo, selfie, or event photo
+- A photo of a building, street, or sky
+- A document or receipt
+- A blank or near-blank image
+
+==================================================
+STRICT MINIMUM THRESHOLD
+========================
+
+For an image to qualify as a business card, BOTH conditions below must be true:
+
+CONDITION A — The image LOOKS like a business card:
+The image must appear to be a small card, document, or printed material designed for contact sharing.
+Photographs of nature, landscapes, buildings, people in social settings, food, or other non-card subjects DO NOT qualify, even if they contain a watermark, logo, or text overlay in a corner.
+
+CONDITION B — The image CONTAINS enough contact information:
+At least TWO of the following must be present as CLEAR, INTENTIONAL, PROMINENT text elements.
+They must NOT be watermarks, corner overlays, footers, or decorative text:
+
+* Person name
+* Company name (clearly labeled organization, not just a domain)
+* Email address (must contain @)
+* Phone number (must contain 5+ digits in sequence)
+* Physical address
+* Job title (only counts if paired with a person name)
+
+If EITHER condition fails, return immediately:
+
+{
+  "full_name": null,
+  "company": null,
+  "email": null,
+  "country": null,
+  "phone_number": null
+}
+
+Do not guess. Do not extract partial information.
+
+==================================================
+WATERMARK / DOMAIN-ONLY RULE — CRITICAL
+========================================
+
+If an image is a scenery, landscape, nature, food, event, or social photo AND contains only a website domain, brand logo, or text watermark in a corner or edge:
+
+This is a WATERMARKED PHOTO, NOT a business card.
+
+DO NOT extract any information from it.
+DO NOT treat the domain as a company name.
+DO NOT infer a person name from the domain text.
+DO NOT infer an email from the domain text.
+DO NOT infer a phone number.
+
+Example of what NOT to do:
+
+Image: [Mountain landscape photo] with "Thuthuanphanmem.vn" in bottom-right corner.
+
+WRONG:
+{
+  "full_name": "Thu Thuan",
+  "company": "ThuThuanPhanMem.vn",
+  "email": "thuthuan@phanmem.vn",
+  "country": "Vietnam",
+  "phone_number": "84912345678"
+}
+
+CORRECT:
+{
+  "full_name": null,
+  "company": null,
+  "email": null,
+  "country": null,
+  "phone_number": null
+}
+
+Reason: A watermark domain on a scenery photo is NOT a business card.
+
+==================================================
+DOMAIN IS NOT ENOUGH
+====================
+
+A domain name alone (e.g. "example.com", "congty.vn", "brand.net") visible in an image:
+
+- CANNOT be used to infer full_name
+- CANNOT be used to construct an email address
+- CANNOT be used to infer a phone number
+- CANNOT be used to infer a country (unless a phone code is explicitly visible)
+
+A domain is only a valid company clue if it appears as part of a clearly formatted business card layout alongside at least one other contact field.
+
+==================================================
+ANTI-HALLUCINATION RULE
+=======================
+
+All extracted values must originate from text actually visible in the image.
+
+Never generate:
+
+* Example names from this prompt
+* Example companies from this prompt
+* Placeholder values
+* Sample values
+* Synthetic values
+* Demo values
+* Names inferred from a domain string
+* Emails constructed by combining a domain with a guessed username
+* Phone numbers not explicitly shown as digits
+
+Never invent information.
+
+If a field cannot be directly supported by visible text in the image:
+
+return null.
+
+Examples shown in this prompt are instructional only and must never appear in the output unless they are actually present in the image.
+
+==================================================
+MULTILINGUAL NORMALIZATION
+==========================
+
+For full_name and company:
+
+ONLY use text that physically appears on the card.
+
+Priority order:
+
+1. Visible Latin-alphabet version
+2. Visible native-language version
+
+If both versions appear on the card:
+
+ALWAYS return the visible Latin-alphabet version.
+
+Examples:
+
+Visible:
+
+山田太郎
+Taro Yamada
+
+Output:
+
+"Taro Yamada"
+
+---
+
+Visible:
+
+王伟
+Wang Wei
+
+Output:
+
+"Wang Wei"
+
+---
+
+Visible:
+
+김민수
+Kim Min Soo
+
+Output:
+
+"Kim Min Soo"
+
+---
+
+Visible:
+
+三星电子
+Samsung Electronics
+
+Output:
+
+"Samsung Electronics"
+
+==================================================
+NO GENERATED ROMANIZATION
+=========================
+
+Do NOT create transliterations.
+
+Do NOT create phonetic conversions.
+
+Do NOT convert:
+
+* Japanese → Romaji
+* Chinese → Pinyin
+* Korean → Romanization
+* Thai → Romanization
+
+unless that Latin-alphabet version is explicitly visible on the card.
+
+Allowed:
+
+Visible:
+
+山田太郎
+Taro Yamada
+
+Output:
+
+"Taro Yamada"
+
+---
+
+Visible:
+
+王伟
+Wang Wei
+
+Output:
+
+"Wang Wei"
+
+---
+
+Visible:
+
+김민수
+Kim Min Soo
+
+Output:
+
+"Kim Min Soo"
+
+==================================================
+NOT ALLOWED
+===========
+
+Visible only:
+
+山田太郎
+
+Output:
+
+"Taro Yamada"
+
+❌ NOT ALLOWED
+
+---
+
+Visible only:
+
+山田太郎
+
+Output:
+
+"Shan Tian Tai Lang"
+
+❌ NOT ALLOWED
+
+---
+
+Visible only:
+
+王伟
+
+Output:
+
+"Wang Wei"
+
+❌ NOT ALLOWED
+
+---
+
+Visible only:
+
+김민수
+
+Output:
+
+"Kim Min Soo"
+
+❌ NOT ALLOWED
+
+---
+
+Visible only:
+
+株式会社ソラシス
+
+Output:
+
+"Sorasys"
+
+❌ NOT ALLOWED
+
+---
+
+Visible only:
+
+株式会社ソラシス
+
+Output:
+
+"So Ra Shi Su Zhu Shi Hui She"
+
+❌ NOT ALLOWED
+
+==================================================
+EMAIL CONSISTENCY VALIDATION
+============================
+
+If an email address exists:
+
+Extract the email username.
+
+Example:
+
+[kenichi.yamamoto@company.com](mailto:kenichi.yamamoto@company.com)
+
+username:
+
+kenichi.yamamoto
+
+---
+
+For every name candidate:
+
+Compare the candidate against:
+
+* email username
+* visible Latin-alphabet names
+* visible native-language names
+
+---
+
+If a visible Latin-alphabet name matches the email username better than a native-language candidate,
+
+ALWAYS select the visible Latin-alphabet name.
+
+Example:
+
+Visible:
+
+山本健一
+Kenichi Yamamoto
+
+Email:
+
+[kenichi.yamamoto@company.com](mailto:kenichi.yamamoto@company.com)
+
+Output:
+
+"Kenichi Yamamoto"
+
+---
+
+Visible:
+
+山田太郎
+Taro Yamada
+
+Email:
+
+[taro.yamada@company.com](mailto:taro.yamada@company.com)
+
+Output:
+
+"Taro Yamada"
+
+---
+
+Visible:
+
+王伟
+Wang Wei
+
+Email:
+
+[wang.wei@company.com](mailto:wang.wei@company.com)
+
+Output:
+
+"Wang Wei"
+
+---
+
+A generated transliteration must NEVER be preferred over a visible Latin-alphabet name.
+
+Example:
+
+Visible:
+
+山本健一
+Kenichi Yamamoto
+
+Generated:
+
+Shan Ben Jian Yi
+
+Output:
+
+"Kenichi Yamamoto"
+
+NOT:
+
+"Shan Ben Jian Yi"
+
+---
+
+If a visible Latin-alphabet name strongly matches the email username,
+that visible Latin-alphabet name has higher priority than:
+
+* OCR confidence
+* font size
+* reading order
+* generated transliterations
+
+==================================================
+COPY-ONLY RULE
+==============
+
+For full_name and company:
+
+The final value must be copied from text that is physically visible on the card.
+
+Character-level modifications are allowed only for obvious OCR corrections.
+
+Do NOT:
+
+* Translate
+* Transliterate
+* Romanize
+* Phonetically convert
+
+The output text must exist on the card exactly or nearly exactly.
+
+If the selected value does not physically appear on the card,
+reject it and select another candidate.
+
+If no valid candidate exists:
+
+return null.
+
+==================================================
+FINAL SAFETY CHECK
+==================
+
+Before generating JSON:
+
+1. Verify the image passed the business card validity check.
+
+2. Verify every non-null field can be directly traced to text visible in the image.
+
+3. Verify full_name appears somewhere on the card.
+
+4. Verify company appears somewhere on the card.
+
+5. If a visible Latin-alphabet equivalent exists,
+   always prefer that visible Latin version.
+
+6. Never generate your own transliteration or romanization.
+
+7. Never output values that appear only in prompt examples.
+
+8. If any value cannot be directly supported by visible image content,
+   replace that value with null.
+
+9. Every non-null output value must be traceable to visible image text.
+
+The output must be based exclusively on the image content.
+
+==================================================
+EMAIL EXTRACTION
+================
+
+Extract the primary email address.
+
+An email MUST:
+
+* Contain the "@" symbol
+* Be explicitly visible as typed text in the image
+* Include the COMPLETE username (do not truncate)
+
+Read the FULL email address carefully, including every character in the username:
+
+Example: if the card shows "minjun.kim@company.co.kr", the username is "minjun.kim", NOT just "minjun".
+
+Return lowercase.
+
+Correct only obvious OCR mistakes:
+
+gmaiI.com → gmail.com
+hotmaiI.com → hotmail.com
+corn → com
+
+If multiple emails exist:
+
+1. Personal email
+2. Direct employee email
+3. First business email
+
+==================================================
+PHONE NUMBER EXTRACTION
+=======================
+
+Extract the primary contact phone number.
+
+A phone number MUST be explicitly visible as digits in the image.
+
+Prefer: Mobile > Direct line > Office phone
+
+Normalize:
+
+* Keep leading "+"
+* Remove spaces, dashes, dots, brackets, separators
+
+Examples:
+
++84 912 345 678 → +84912345678
+(090) 123-4567 → 0901234567
+
+==================================================
+COUNTRY EXTRACTION
+==================
+
+ALWAYS return the country name in ENGLISH.
+
+NEVER return country names in native language:
+
+* DO NOT return "Zhong Guo" → return "China"
+* DO NOT return "Nippon" or "Nihon" → return "Japan"
+* DO NOT return "Hanguk" → return "South Korea"
+* DO NOT return "Pháp" → return "France"
+* DO NOT return "Viet Nam" in Vietnamese → return "Vietnam"
+
+Determine country from explicit evidence only:
+
+1. Country name printed on the card (convert to English)
+2. Physical address
+3. Phone country code
+
+Phone code reference:
++84 → Vietnam
++1 → United States
++81 → Japan
++82 → South Korea
++86 → China
++66 → Thailand
++65 → Singapore
++60 → Malaysia
++62 → Indonesia
++63 → Philippines
++855 → Cambodia
++856 → Laos
++95 → Myanmar
++44 → United Kingdom
++33 → France
++49 → Germany
+
+If uncertain: return null
+
+==================================================
+LANGUAGE-SPECIFIC OCR CORRECTIONS
+===================================
+
+These are CRITICAL corrections for common model errors with Asian scripts.
+
+--------------------------------------------------
+KOREAN NAMES — SURNAME ROMANIZATION
+--------------------------------------------------
+
+Korean surnames have established international romanizations that differ from Revised Romanization.
+
+ALWAYS use these standard international forms:
+
+김 → Kim   (NOT "Gim")
+박 → Park  (NOT "Bak" or "Pak")
+이 → Lee   (NOT "I" or "Yi" alone)
+최 → Choi  (NOT "Choe")
+강 → Kang  (NOT "Gang")
+조 → Jo or Cho
+윤 → Yoon  (NOT "Yun" as Revised Romanization)
+장 → Jang
+임 → Im or Lim
+정 → Jung or Jeong
+권 → Kwon  (NOT "Gwon")
+한 → Han
+오 → Oh    (NOT "O")
+서 → Seo
+신 → Shin  (NOT "Sin")
+황 → Hwang
+안 → An
+송 → Song
+류 → Ryu   (NOT "Ryu" but "Ryu" is also acceptable)
+전 → Jeon or Chun
+홍 → Hong
+고 → Go or Koh
+문 → Moon  (NOT "Mun")
+양 → Yang
+손 → Son or Sohn
+배 → Bae   (NOT "Bae" — keep as Bae)
+백 → Baek  (NOT "Baek" — keep as Baek)
+허 → Heo or Hur
+남 → Nam
+심 → Shim  (NOT "Sim")
+노 → Noh   (NOT "No")
+하 → Ha
+곽 → Kwak  (NOT "Gwak")
+성 → Sung  (NOT "Seong" in international contexts)
+차 → Cha
+우 → Woo   (NOT "U")
+지 → Ji
+민 → Min
+유 → Yoo or Yu
+
+Critical rule: If you read a Korean surname and would romanize it starting with "G" for 김, use "Kim" instead.
+
+Example:
+김민준 with no Latin on card → return null for full_name (do NOT transliterate)
+김민준 + "Kim Min Jun" visible on card → return "Kim Min Jun"
+
+--------------------------------------------------
+JAPANESE NAMES — DO NOT USE CHINESE READINGS
+--------------------------------------------------
+
+Japanese kanji have JAPANESE readings (on'yomi / kun'yomi).
+Do NOT apply Mandarin Chinese (pinyin) readings to Japanese kanji.
+
+Wrong pattern to avoid:
+山田太郎 → "Shan Tian Tai Lang"  ← This is the CHINESE reading. FORBIDDEN.
+山本健一 → "Shan Ben Jian Yi"    ← This is the CHINESE reading. FORBIDDEN.
+
+A Japanese business card almost always has BOTH kanji AND a Latin romanization printed on it.
+If you see a Latin name on the card, use it DIRECTLY.
+
+If NO Latin version is present and only Japanese kanji exists:
+→ return null for that field (do NOT transliterate)
+
+--------------------------------------------------
+JAPANESE COMPANY — KATAKANA
+--------------------------------------------------
+
+Katakana company names must be romanized by grouping sounds into words, not letter by letter.
+
+Wrong pattern to avoid:
+サクラテクノロジーズ → "Sa Ku Ra Te Ku No Ro Ji Zu"  ← FORBIDDEN (spaced per mora)
+株式会社ソラシス → "So Ra Shi Su Zhu Shi Hui She"    ← FORBIDDEN (mixed Chinese/Japanese)
+
+Correct:
+If a Latin company name is printed on the card → use it directly.
+If no Latin version exists → return null for company.
+
+--------------------------------------------------
+CHINESE COMPANY — PINYIN SPACING
+--------------------------------------------------
+
+Chinese company names in Pinyin should be grouped as proper words, not spaced per character.
+
+Wrong pattern:
+鸿源国际贸易有限公司 → "Hong Yuan Guo Ji Mao Yi You Xian Gong Si"
+
+Correct: If a Latin/English company name is printed on the card, use it.
+If no Latin name exists: return null for company.
+
+--------------------------------------------------
+COUNTRY IN ENGLISH — MANDATORY
+--------------------------------------------------
+
+If you detect the country from the card:
+
+* Convert it to English immediately.
+* Do NOT output the native-language country name.
+
+Correction table:
+"Zhong Guo" → "China"
+"Nippon" or "Nihon" → "Japan"
+"Hanguk" or "Daehan Minguk" → "South Korea"
+"Joseon" → "North Korea"
+"Viet Nam" (Vietnamese) → "Vietnam"
+"Pháp" → "France"
+"Duc" or "Deutschland" → "Germany"
+"Anh" → "United Kingdom"
+
+==================================================
+OUTPUT FORMAT
+=============
+
+Return ONLY:
+
+{
+  "full_name": "...",
+  "company": "...",
+  "email": "...",
+  "country": "...",
+  "phone_number": "..."
+}
+
+Use null for any field that cannot be confidently extracted.

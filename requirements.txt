@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+Pillow
+pillow-heif
+openai
+requests
+anyascii
+httpx
+python-multipart
+python-dotenv
