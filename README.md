@@ -1,4 +1,4 @@
-# Qwen3-VL Business Card Lead Retrieval API Gateway
+# Business Card Lead Retrieval API Gateway
 
 A production-ready, Dockerized API gateway designed to extract and normalize contact information (leads) from single- or double-sided business card images. The service utilizes a backend vLLM engine hosting the **Baidu Qianfan-OCR** Vision-Language Model (VLM), fronted by a FastAPI gateway, Nginx reverse proxy, and optional Ngrok tunneling.
 
